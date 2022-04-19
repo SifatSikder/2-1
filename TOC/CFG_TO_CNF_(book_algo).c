@@ -20,6 +20,7 @@ int number_of_non_terminal;
 int number_of_terminal = 0;
 char terminal[100];
 char start_variable;
+char non_generating[10];
 
 char **substring(char *string, int starting_index)
 {
@@ -560,11 +561,51 @@ int is_generating(char ch)
 	
 }
 
+void variable_delete(char ch)
+{
+    for (int i = 0; i < number_of_non_terminal; i++)
+    {
+        if (ch==b[i].variable_name)
+        {
+            for (int j = i+1; j < number_of_non_terminal; j++)
+            {
+                b[j-1].generating=b[j].generating;
+                b[j-1].number_of_transition=b[j].number_of_transition;
+                b[j-1].old_or_new_variable=b[j].old_or_new_variable;
+                b[j-1].reachable_from_start=b[j].reachable_from_start;
+                b[j-1].variable_name=b[j].variable_name;
+                
+
+                b[j-1].variable_transitions = (char **)malloc(b[j].number_of_transition*sizeof(char *));
+			for (int q = 0; q < b[j].number_of_transition; q++)
+				b[j-1].variable_transitions[q] = (char *)malloc(strlen(b[j].variable_transitions[q])*sizeof(char));
+
+                for (int x = 0; x < b[j].number_of_transition; x++)
+                {
+                    strcpy(b[j-1].variable_transitions[x],b[j].variable_transitions[x]);
+                }
+                
+
+            }
+            number_of_non_terminal--;
+            
+        }
+        
+    }
+    
+}
+
 void delete(char ch)
 {
     for (int i = 0; i < number_of_non_terminal; i++)
 	{
 		
+		if (b[i].variable_name==ch)
+		{
+			variable_delete(b[i].variable_name);
+		}
+		else
+		{
 			for (int j = 0; j < b[i].number_of_transition; j++)
 			{
 				int need_to_delete=0;
@@ -587,6 +628,9 @@ void delete(char ch)
                 }
                 
             }
+		}
+		
+			
     }
 	
 }
@@ -622,43 +666,25 @@ int is_reachable(char ch)
 
 }
 
-void variable_delete(char ch)
+
+
+int already_stored(char ch)
 {
-    for (int i = 0; i < number_of_non_terminal; i++)
-    {
-        if (ch==b[i].variable_name)
-        {
-            for (int j = i+1; j < number_of_non_terminal; j++)
-            {
-                b[j-1].generating=b[j].generating;
-                b[j-1].number_of_transition=b[j].number_of_transition;
-                b[j-1].old_or_new_variable=b[j].old_or_new_variable;
-                b[j-1].reachable_from_start=b[j].reachable_from_start;
-                b[j-1].variable_name=b[j].variable_name;
-                
-
-                b[j-1].variable_transitions = (char **)malloc(b[j].number_of_transition*sizeof(char *));
-			for (int j = 0; j < b[j].number_of_transition; j++)
-				b[j-1].variable_transitions[j] = (char *)malloc(5*sizeof(char));
-
-                for (int x = 0; x < b[j].number_of_transition; x++)
-                {
-                    strcpy(b[j-1].variable_transitions[x],b[j].variable_transitions[x]);
-                }
-                
-
-            }
-            number_of_non_terminal--;
-            
-        }
-        
-    }
-    
+	for (int i = 0; i < 10; i++)
+	{
+		if (non_generating[i]==ch)
+		{
+			return 1;
+		}
+		
+	}
+	return 0;
+	
 }
 
 void remove_all_useless_symbols()
 {
-	char non_generating[10];
+	
 	int index=0;
 	// delete all non-generating function
 
@@ -705,7 +731,7 @@ void remove_all_useless_symbols()
 			{
 				for (int k = 0; k < strlen(b[i].variable_transitions[j]); k++)
 				{
-					if (is_variable(b[i].variable_transitions[j][k]) && (!is_generating(b[i].variable_transitions[j][k])))
+					if (is_variable(b[i].variable_transitions[j][k]) && (!is_generating(b[i].variable_transitions[j][k])) && (!already_stored(b[i].variable_transitions[j][k])))
 					{
 						non_generating[index++]=b[i].variable_transitions[j][k];
 					}
@@ -718,6 +744,8 @@ void remove_all_useless_symbols()
 	{
 		delete(non_generating[i]);
 	}
+
+
 	
 
 	// finding all variable which is reachable from start
